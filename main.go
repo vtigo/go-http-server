@@ -23,6 +23,8 @@ func main() {
 			return ctx
 		},
 	}
+	
+	fmt.Println("listening on port 3000")
 
 	err := server.ListenAndServe()
 	if errors.Is(err, http.ErrServerClosed) {
@@ -41,7 +43,7 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 	hasSecret := r.URL.Query().Has("secret")
 
 	fmt.Printf(
-		"got / request. first(%t)=%s, second(%t)=%s\n",
+		"get / request. first(%t)=%s, second(%t)=%s\n",
 		hasFirst, first,
 		hasSecond, second,
 	)
@@ -53,7 +55,7 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func getHello(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("got /hello request")
+	fmt.Println("get /hello request")
 	io.WriteString(w, "Hello from Brasil!\n")
 }
 
