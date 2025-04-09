@@ -1,33 +1,59 @@
 package main
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"net/http"
-	"os"
 	"io"
+	"context"
+	"net"
 )
 
 func main() {
-	http.HandleFunc("/", getRoot)
-	http.HandleFunc("/hello", getHello)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", getRoot)
+	mux.HandleFunc("/hello", getHello)
+	
+	ctx := context.Background()
+	server := &http.Server{
+		Addr: "localhost:3000",
+		Handler: mux,
+		BaseContext: func(l net.Listener) context.Context {
+			ctx = context.WithValue(ctx, "keyServerAddr", l.Addr().String())
+			return ctx
+		},
+	}
 
-	err := http.ListenAndServe("127.0.0.1:3000", nil)
-
+	err := server.ListenAndServe()
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Println("server closed")
 	} else if err != nil {
-		fmt.Printf("error starting server: %s\n", err)
-		os.Exit(1)
+		fmt.Printf("error listening for server: %s\n", err)
 	}
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("got / request")
+	hasFirst := r.URL.Query().Has("first")
+	first := r.URL.Query().Get("first")
+	hasSecond := r.URL.Query().Has("second")
+	second := r.URL.Query().Get("second")
+
+	hasSecret := r.URL.Query().Has("secret")
+
+	fmt.Printf(
+		"got / request. first(%t)=%s, second(%t)=%s\n",
+		hasFirst, first,
+		hasSecond, second,
+	)
+
 	io.WriteString(w, "This is my server!\n")
+	if(hasSecret) {
+		io.WriteString(w, "You have found the secret")
+	}
 }
 
 func getHello(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("got /hello request")
+	io.WriteString(w, "Hello from Brasil!\n")
 }
 
