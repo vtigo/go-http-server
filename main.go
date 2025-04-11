@@ -1,61 +1,39 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"net/http"
-	"io"
-	"context"
+	"log"
 	"net"
 )
 
+const PORT = 3333
+
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", getRoot)
-	mux.HandleFunc("/hello", getHello)
-	
-	ctx := context.Background()
-	server := &http.Server{
-		Addr: "localhost:3000",
-		Handler: mux,
-		BaseContext: func(l net.Listener) context.Context {
-			ctx = context.WithValue(ctx, "keyServerAddr", l.Addr().String())
-			return ctx
-		},
-	}
-	
-	fmt.Println("listening on port 3000")
+	conn := startServer(PORT)
 
-	err := server.ListenAndServe()
-	if errors.Is(err, http.ErrServerClosed) {
-		fmt.Println("server closed")
-	} else if err != nil {
-		fmt.Printf("error listening for server: %s\n", err)
-	}
+	buffer := make([]byte, 1024)
+	conn.Read(buffer)
+	request := string(buffer)
+
+	fmt.Println(request)
+
+	conn.Write([]byte("HTTP/1.1 200 OK"))
 }
 
-func getRoot(w http.ResponseWriter, r *http.Request) {
-	hasFirst := r.URL.Query().Has("first")
-	first := r.URL.Query().Get("first")
-	hasSecond := r.URL.Query().Has("second")
-	second := r.URL.Query().Get("second")
-
-	hasSecret := r.URL.Query().Has("secret")
-
-	fmt.Printf(
-		"get / request. first(%t)=%s, second(%t)=%s\n",
-		hasFirst, first,
-		hasSecond, second,
-	)
-
-	io.WriteString(w, "This is my server!\n")
-	if(hasSecret) {
-		io.WriteString(w, "You have found the secret")
+func startServer(port int) net.Conn {
+	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
+	if err != nil {
+		errMessage := fmt.Sprintf("Error binding to port %d: %s", port, err )
+		log.Fatal(errMessage)
 	}
+
+	conn, err := l.Accept()
+	if err != nil {
+		errMessage := fmt.Sprintf("Error accepting connection: %d", err )
+		log.Fatal(errMessage)
+	}
+
+	return conn
 }
 
-func getHello(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("get /hello request")
-	io.WriteString(w, "Hello from Brasil!\n")
-}
 
